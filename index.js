@@ -58,95 +58,37 @@ export default (() => {
     return elem;
   };
 
-  const getElementInnerSpace = (() => {
-    /**
-     * @type {CSSStyleDeclaration|undefined}
+  /**
+   * @param {HTMLElement} elem
+   * @return {{width:Number,height:Number}}
+   */
+  const getElementInnerSpace = (elem) => {
+    const computedStyle = getComputedStyle(elem),
+      sides = ["Top", "Right", "Bottom", "Left"],
+      boundingClientRect = elem.getBoundingClientRect(),
+      extraLengths = [boundingClientRect[HEIGHT], boundingClientRect[WIDTH]];
 
-    /**
-     * @type {Array<CSSStyleDeclaration?,Number?,"width"|"height">}
-     */
-    let cache = [];
-
-    /**
-     * @param {HTMLElement} elem
-     * @return {{width:Number,height:Number}}
-     */
-    const getElementInnerSpace = (elem) => {
-      let extraLength = 0;
-      const [
-          computedStyle = (
-            elem.ownerDocument.defaultView || window
-          ).getComputedStyle(elem),
-          cachedWidth,
-          dimension,
-        ] = cache,
-        isWidth = dimension === WIDTH;
-
-      for (const side of isWidth ? ["right", "left"] : ["top", "bottom"]) {
-        for (const property of ["padding-" + side, `border-${side}-width`]) {
-          extraLength += parseFloat(computedStyle.getPropertyValue(property));
-        }
+    for (const side of sides) {
+      const indexModulus = sides.indexOf(side) % 2;
+      for (const property of ["padding" + side, `border${side}Width`]) {
+        extraLengths[indexModulus] -= parseFloat(computedStyle[property]);
       }
+    }
 
-      let width = NaN,
-        height = width,
-        dimensionKey = dimension,
-        /**
-         * @type {DOMRect}
-         */
-        boundingClientRect;
+    return { [HEIGHT]: extraLengths[0], [WIDTH]: extraLengths[1] };
+  };
 
-      const getBoundingClientRect = () => {
-        if (!boundingClientRect) {
-          boundingClientRect = elem.getBoundingClientRect();
-        }
-        return boundingClientRect;
-      };
+  /**
+   * @param {HTMLElement} elem
+   * @return {Number}
+   */
+  getElementInnerSpace[WIDTH] = (elem) => getElementInnerSpace(elem)[WIDTH];
 
-      /**
-       * @param {"width"|"height"} dimension
-       */
-      const getLength = (dimension) =>
-        dimension === WIDTH && cachedWidth != null
-          ? cachedWidth
-          : getBoundingClientRect()[dimension];
-
-      if (!dimensionKey) {
-        dimensionKey = HEIGHT;
-        cachedComputedStyle = computedStyle;
-        cachedWidth = getLength(WIDTH);
-        width = getElementInnerSpace[WIDTH](elem);
-      }
-
-      const val = getLength(dimensionKey) - extraLength;
-
-      if (isWidth) {
-        width = val;
-      } else {
-        height = val;
-      }
-
-      cache = [];
-
-      return { [WIDTH]: width, [HEIGHT]: height };
-    };
-
-    /**
-     * @param {HTMLElement} elem
-     * @return {Number}
-     */
-    getElementInnerSpace[WIDTH] = (elem) =>
-      (cache[2] = WIDTH) && getElementInnerSpace(elem)[WIDTH];
-
-    /**
-     * @param {HTMLElement} elem
-     * @return {Number}
-     */
-    getElementInnerSpace[HEIGHT] = (elem) =>
-      (cache[2] = HEIGHT) && getElementInnerSpace(elem)[HEIGHT];
-
-    return getElementInnerSpace;
-  })();
+  /**
+   * @param {HTMLElement} elem
+   * @return {Number}
+   */
+  getElementInnerSpace[HEIGHT] = (elem) => getElementInnerSpace(elem)[HEIGHT];
 
   return respond;
 })();
