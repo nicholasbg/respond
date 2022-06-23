@@ -58,19 +58,14 @@ export default (() => {
     return elem;
   };
 
-  const getElementInnerSpace = ((_undefined) => {
+  const getElementInnerSpace = (() => {
     /**
      * @type {CSSStyleDeclaration|undefined}
+
+    /**
+     * @type {Array<CSSStyleDeclaration?,Number?,"width"|"height">}
      */
-    let cachedComputedStyle,
-      /**
-       * @type {Number|undefined}
-       */
-      cachedWidth,
-      /**
-       * @type {"width"|"height"|undefined}
-       */
-      dimension;
+    let cache = [];
 
     /**
      * @param {HTMLElement} elem
@@ -78,22 +73,19 @@ export default (() => {
      */
     const getElementInnerSpace = (elem) => {
       let extraLength = 0;
-      const isWidth = dimension === WIDTH,
-        computedStyle =
-          cachedComputedStyle ||
-          (elem.ownerDocument.defaultView || window).getComputedStyle(elem);
+      const [
+          computedStyle = (
+            elem.ownerDocument.defaultView || window
+          ).getComputedStyle(elem),
+          cachedWidth,
+          dimension,
+        ] = cache,
+        isWidth = dimension === WIDTH;
 
-      for (const extraLengthIndex of [0, 1, 2, 3]) {
-        const side = (isWidth ? ["right", "left"] : ["top", "bottom"])[
-          extraLengthIndex % 2
-        ];
-        extraLength += parseFloat(
-          computedStyle.getPropertyValue(
-            [`padding-${side}`, `border-${side}-width`][
-              extraLengthIndex > 1 ? 0 : 1
-            ]
-          )
-        );
+      for (const side of isWidth ? ["right", "left"] : ["top", "bottom"]) {
+        for (const property of ["padding-" + side, `border-${side}-width`]) {
+          extraLength += parseFloat(computedStyle.getPropertyValue(property));
+        }
       }
 
       let width = NaN,
@@ -134,9 +126,7 @@ export default (() => {
         height = val;
       }
 
-      cachedComputedStyle = _undefined;
-      cachedWidth = _undefined;
-      dimension = _undefined;
+      cache = [];
 
       return { [WIDTH]: width, [HEIGHT]: height };
     };
@@ -145,15 +135,15 @@ export default (() => {
      * @param {HTMLElement} elem
      * @return {Number}
      */
-    getElementInnerSpace.width = (elem) =>
-      (dimension = WIDTH) && getElementInnerSpace(elem)[WIDTH];
+    getElementInnerSpace[WIDTH] = (elem) =>
+      (cache[2] = WIDTH) && getElementInnerSpace(elem)[WIDTH];
 
     /**
      * @param {HTMLElement} elem
      * @return {Number}
      */
-    getElementInnerSpace.height = (elem) =>
-      (dimension = HEIGHT) && getElementInnerSpace(elem)[HEIGHT];
+    getElementInnerSpace[HEIGHT] = (elem) =>
+      (cache[2] = HEIGHT) && getElementInnerSpace(elem)[HEIGHT];
 
     return getElementInnerSpace;
   })();
