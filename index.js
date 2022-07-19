@@ -78,38 +78,29 @@ export default (() => {
      */
     const getElementInnerSpace = (elem) => {
       let extraLength = 0;
-      const isWidth = dimension === WIDTH,
-        computedStyle =
-          cachedComputedStyle ||
-          (elem.ownerDocument.defaultView || window).getComputedStyle(elem);
+      const isWidth = dimension === WIDTH;
+      const computedStyle =
+        cachedComputedStyle ||
+        (elem.ownerDocument.defaultView || window).getComputedStyle(elem);
 
-      for (const extraLengthIndex of [0, 1, 2, 3]) {
-        const side = (isWidth ? ["right", "left"] : ["top", "bottom"])[
-          extraLengthIndex % 2
-        ];
-        extraLength += parseFloat(
-          computedStyle.getPropertyValue(
-            [`padding-${side}`, `border-${side}-width`][
-              extraLengthIndex > 1 ? 0 : 1
-            ]
-          )
-        );
+      if (computedStyle.boxSizing !== "border-box") {
+        for (const extraLengthIndex of [0, 1, 2, 3]) {
+          const side = (isWidth ? ["right", "left"] : ["top", "bottom"])[
+            extraLengthIndex % 2
+          ];
+          extraLength += parseFloat(
+            computedStyle.getPropertyValue(
+              [`padding-${side}`, `border-${side}-width`][
+                extraLengthIndex > 1 ? 0 : 1
+              ]
+            )
+          );
+        }
       }
 
       let width = NaN,
         height = width,
-        dimensionKey = dimension,
-        /**
-         * @type {DOMRect}
-         */
-        boundingClientRect;
-
-      const getBoundingClientRect = () => {
-        if (!boundingClientRect) {
-          boundingClientRect = elem.getBoundingClientRect();
-        }
-        return boundingClientRect;
-      };
+        dimensionKey = dimension;
 
       /**
        * @param {"width"|"height"} dimension
@@ -117,7 +108,7 @@ export default (() => {
       const getLength = (dimension) =>
         dimension === WIDTH && cachedWidth != null
           ? cachedWidth
-          : getBoundingClientRect()[dimension];
+          : parseFloat(computedStyle[dimension]);
 
       if (!dimensionKey) {
         dimensionKey = HEIGHT;
