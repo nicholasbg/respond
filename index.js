@@ -19,12 +19,12 @@ export default (() => {
   respond.getClassNames = (
     elem,
     breakpoints,
-    { namespace, dimension = WIDTH } = {}
+    { namespace = "", dimension = WIDTH } = {}
   ) => {
     /**
      * @type {Number}
      */
-    const length = getElementInnerSpace[dimension](elem),
+    const innerSpace = getElementInnerSpace(elem)[dimension],
       /**
        * @type {Set<string>}
        */
@@ -33,9 +33,10 @@ export default (() => {
        * @type {Set<string>}
        */
       remove = new Set();
-    namespace = (!namespace ? dimension : namespace + "-" + dimension) + "-";
+
+    namespace += dimension + "-";
     for (const breakpoint of breakpoints) {
-      (length < breakpoint ? remove : add).add(namespace + breakpoint);
+      (innerSpace < breakpoint ? remove : add).add(namespace + breakpoint);
     }
 
     return [add, remove];
@@ -58,96 +59,31 @@ export default (() => {
     return elem;
   };
 
-  const getElementInnerSpace = ((_undefined) => {
-    /**
-     * @type {CSSStyleDeclaration|undefined}
-     */
-    let cachedComputedStyle,
-      /**
-       * @type {Number|undefined}
-       */
-      cachedWidth,
-      /**
-       * @type {"width"|"height"|undefined}
-       */
-      dimension;
-
-    /**
-     * @param {HTMLElement} elem
-     * @return {{width:Number,height:Number}}
-     */
-    const getElementInnerSpace = (elem) => {
-      let extraLength = 0;
-      const isWidth = dimension === WIDTH;
-      const computedStyle =
-        cachedComputedStyle ||
-        (elem.ownerDocument.defaultView || window).getComputedStyle(elem);
-
-      if (computedStyle.boxSizing !== "border-box") {
-        for (const extraLengthIndex of [0, 1, 2, 3]) {
-          const side = (isWidth ? ["right", "left"] : ["top", "bottom"])[
-            extraLengthIndex % 2
-          ];
-          extraLength += parseFloat(
-            computedStyle.getPropertyValue(
-              [`padding-${side}`, `border-${side}-width`][
-                extraLengthIndex > 1 ? 0 : 1
-              ]
-            )
-          );
+  /**
+   * @param {HTMLElement} elem
+   * @return {{width:Number,height:Number}}
+   */
+  const getElementInnerSpace = (elem) => {
+    const computedStyle = getComputedStyle(elem),
+      extraSpace = [computedStyle[HEIGHT], computedStyle[WIDTH]];
+    if (computedStyle.boxSizing === "border-box") {
+      ["Top", "Right", "Bottom", "Left"].forEach((side, index) =>
+        ["padding" + side, `border${side}Width`].forEach(
+          (property) =>
+            (extraSpace[index % 2] -= parseFloat(computedStyle[property]))
+        )
+      );
+      const sides = ["Top", "Right", "Bottom", "Left"];
+      for (const side of sides) {
+        const indexModulus = sides.indexOf(side) % 2;
+        for (const property of ["padding" + side, `border${side}Width`]) {
+          extraSpace[indexModulus] -= parseFloat(computedStyle[property]);
         }
       }
+    }
 
-      let width = NaN,
-        height = width,
-        dimensionKey = dimension;
-
-      /**
-       * @param {"width"|"height"} dimension
-       */
-      const getLength = (dimension) =>
-        dimension === WIDTH && cachedWidth != null
-          ? cachedWidth
-          : parseFloat(computedStyle[dimension]);
-
-      if (!dimensionKey) {
-        dimensionKey = HEIGHT;
-        cachedComputedStyle = computedStyle;
-        cachedWidth = getLength(WIDTH);
-        width = getElementInnerSpace[WIDTH](elem);
-      }
-
-      const val = getLength(dimensionKey) - extraLength;
-
-      if (isWidth) {
-        width = val;
-      } else {
-        height = val;
-      }
-
-      cachedComputedStyle = _undefined;
-      cachedWidth = _undefined;
-      dimension = _undefined;
-
-      return { [WIDTH]: width, [HEIGHT]: height };
-    };
-
-    /**
-     * @param {HTMLElement} elem
-     * @return {Number}
-     */
-    getElementInnerSpace.width = (elem) =>
-      (dimension = WIDTH) && getElementInnerSpace(elem)[WIDTH];
-
-    /**
-     * @param {HTMLElement} elem
-     * @return {Number}
-     */
-    getElementInnerSpace.height = (elem) =>
-      (dimension = HEIGHT) && getElementInnerSpace(elem)[HEIGHT];
-
-    return getElementInnerSpace;
-  })();
+    return { [HEIGHT]: extraSpace[0], [WIDTH]: extraSpace[1] };
+  };
 
   return respond;
 })();
