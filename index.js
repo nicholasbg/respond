@@ -19,12 +19,12 @@ export default (() => {
   respond.getClassNames = (
     elem,
     breakpoints,
-    { namespace, dimension = WIDTH } = {}
+    { namespace = "", dimension = WIDTH } = {}
   ) => {
     /**
      * @type {Number}
      */
-    const length = getElementInnerSpace[dimension](elem),
+    const innerSpace = getElementInnerSpace(elem)[dimension],
       /**
        * @type {Set<string>}
        */
@@ -33,9 +33,10 @@ export default (() => {
        * @type {Set<string>}
        */
       remove = new Set();
-    namespace = (!namespace ? dimension : namespace + "-" + dimension) + "-";
+
+    namespace += dimension + "-";
     for (const breakpoint of breakpoints) {
-      (length < breakpoint ? remove : add).add(namespace + breakpoint);
+      (innerSpace < breakpoint ? remove : add).add(namespace + breakpoint);
     }
 
     return [add, remove];
@@ -64,31 +65,25 @@ export default (() => {
    */
   const getElementInnerSpace = (elem) => {
     const computedStyle = getComputedStyle(elem),
-      sides = ["Top", "Right", "Bottom", "Left"],
-      boundingClientRect = elem.getBoundingClientRect(),
-      extraLengths = [boundingClientRect[HEIGHT], boundingClientRect[WIDTH]];
-
-    for (const side of sides) {
-      const indexModulus = sides.indexOf(side) % 2;
-      for (const property of ["padding" + side, `border${side}Width`]) {
-        extraLengths[indexModulus] -= parseFloat(computedStyle[property]);
+      extraSpace = [computedStyle[HEIGHT], computedStyle[WIDTH]];
+    if (computedStyle.boxSizing === "border-box") {
+      ["Top", "Right", "Bottom", "Left"].forEach((side, index) =>
+        ["padding" + side, `border${side}Width`].forEach(
+          (property) =>
+            (extraSpace[index % 2] -= parseFloat(computedStyle[property]))
+        )
+      );
+      const sides = ["Top", "Right", "Bottom", "Left"];
+      for (const side of sides) {
+        const indexModulus = sides.indexOf(side) % 2;
+        for (const property of ["padding" + side, `border${side}Width`]) {
+          extraSpace[indexModulus] -= parseFloat(computedStyle[property]);
+        }
       }
     }
 
-    return { [HEIGHT]: extraLengths[0], [WIDTH]: extraLengths[1] };
+    return { [HEIGHT]: extraSpace[0], [WIDTH]: extraSpace[1] };
   };
-
-  /**
-   * @param {HTMLElement} elem
-   * @return {Number}
-   */
-  getElementInnerSpace[WIDTH] = (elem) => getElementInnerSpace(elem)[WIDTH];
-
-  /**
-   * @param {HTMLElement} elem
-   * @return {Number}
-   */
-  getElementInnerSpace[HEIGHT] = (elem) => getElementInnerSpace(elem)[HEIGHT];
 
   return respond;
 })();
