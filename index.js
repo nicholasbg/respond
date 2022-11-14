@@ -8,7 +8,7 @@ export default (() => {
    * @return {HTMLElement}
    */
   const respond = (...params) =>
-    setClassNames(params[0], ...respond.getClassNames(...params));
+    setClassNames(params[0], ...getClassNames(...params));
 
   /**
    * @param {HTMLElement} elem
@@ -16,7 +16,7 @@ export default (() => {
    * @param {{dimension?:"width"|"height",namespace?:String}} options
    * @return {[Set<string>, Set<string>]}
    */
-  respond.getClassNames = (
+  const getClassNames = (
     elem,
     breakpoints,
     { namespace = "", dimension = WIDTH } = {}
@@ -73,13 +73,6 @@ export default (() => {
             (extraSpace[index % 2] -= parseFloat(computedStyle[property]))
         )
       );
-      const sides = ["Top", "Right", "Bottom", "Left"];
-      for (const side of sides) {
-        const indexModulus = sides.indexOf(side) % 2;
-        for (const property of ["padding" + side, `border${side}Width`]) {
-          extraSpace[indexModulus] -= parseFloat(computedStyle[property]);
-        }
-      }
     }
 
     return { [HEIGHT]: extraSpace[0], [WIDTH]: extraSpace[1] };
